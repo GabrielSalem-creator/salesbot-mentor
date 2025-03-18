@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useSales, Message } from '../context/SalesContext';
-import { Send, ArrowRight } from 'lucide-react';
+import { Send, ArrowRight, Brain } from 'lucide-react';
 
 const TrainingInterface: React.FC = () => {
   const { 
@@ -61,11 +61,26 @@ const TrainingInterface: React.FC = () => {
   return (
     <div className="flex flex-col h-full pt-16 pb-4">
       <div className="glass-card p-6 rounded-2xl mb-6 mx-auto max-w-2xl w-full animate-fade-in">
-        <h2 className="text-xl font-semibold mb-2">Train Your Sales AI</h2>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="bg-secondary rounded-full p-2">
+            <Brain size={24} />
+          </div>
+          <h2 className="text-xl font-semibold">Train Your AI Salesperson</h2>
+        </div>
         <p className="text-gray-600 mb-4">
-          Teach your AI how to be an effective salesperson. Share sales techniques, 
-          strategies, and approaches. The better you train it, the more successful it will be.
+          Your AI salesperson knows <span className="font-medium">nothing</span> about sales yet. 
+          You need to teach it everything about how to be an effective salesperson. 
+          Share sales techniques, strategies, and approaches.
         </p>
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-700 text-sm">
+          <p className="font-medium mb-1">How to train your AI:</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Explain how to identify customer needs</li>
+            <li>Teach persuasive techniques and objection handling</li>
+            <li>Share closing strategies and follow-up methods</li>
+            <li>The better you train it, the more sales it will make!</li>
+          </ul>
+        </div>
       </div>
       
       <div className="flex-1 overflow-y-auto px-4 py-2 mb-4">
@@ -90,7 +105,7 @@ const TrainingInterface: React.FC = () => {
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Type your sales training instructions..."
+              placeholder="Teach your AI a sales technique..."
               className="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               disabled={isAiThinking}
             />

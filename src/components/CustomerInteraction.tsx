@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useSales } from '../context/SalesContext';
-import { Send, User } from 'lucide-react';
+import { Send, User, Brain, ArrowRight } from 'lucide-react';
 
 const CustomerInteraction: React.FC = () => {
   const { 
@@ -9,7 +9,8 @@ const CustomerInteraction: React.FC = () => {
     currentCustomer,
     selectedProduct,
     sendMessage,
-    isAiThinking
+    isAiThinking,
+    completeSalesAttempt
   } = useSales();
   
   const [inputValue, setInputValue] = useState('');
@@ -29,6 +30,10 @@ const CustomerInteraction: React.FC = () => {
       sendMessage(inputValue.trim(), 'customer');
       setInputValue('');
     }
+  };
+
+  const handleSkipCustomer = () => {
+    completeSalesAttempt(false);
   };
   
   if (!currentCustomer || !selectedProduct) {
@@ -60,9 +65,14 @@ const CustomerInteraction: React.FC = () => {
             </div>
           </div>
         </div>
-        <p className="text-gray-600 text-sm">{currentCustomer.description}</p>
+        <p className="text-gray-600 text-sm mb-3">{currentCustomer.description}</p>
         
-        <div className="mt-4 pt-4 border-t border-gray-100">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-blue-700 text-sm mb-3">
+          <p className="font-medium">Now watching your trained AI salesperson in action!</p>
+          <p>Watch how your AI applies the sales techniques you taught it.</p>
+        </div>
+        
+        <div className="pt-3 border-t border-gray-100">
           <p className="text-sm font-medium">Selling:</p>
           <div className="flex items-center gap-3 mt-2">
             <div className="h-12 w-12 rounded overflow-hidden">
@@ -88,6 +98,23 @@ const CustomerInteraction: React.FC = () => {
       
       <div className="flex-1 overflow-y-auto px-4 py-2 mb-4">
         <div className="max-w-2xl mx-auto">
+          <div className="flex justify-between items-center mb-3">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Brain size={16} className="text-primary" />
+              <span>Your AI Salesperson</span>
+              <span className="text-gray-400 mx-1">→</span>
+              <User size={16} className="text-secondary" />
+              <span>Customer</span>
+            </div>
+            <button
+              onClick={handleSkipCustomer}
+              className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+            >
+              Skip this customer
+              <ArrowRight size={12} />
+            </button>
+          </div>
+        
           {customerMessages.map((message, index) => (
             <div 
               key={message.id} 
@@ -100,6 +127,19 @@ const CustomerInteraction: React.FC = () => {
                 </div>
               ) : (
                 <div className={`chat-message ${message.role === 'user' ? 'user' : 'ai'}`}>
+                  <div className="flex items-center gap-2 mb-1 text-xs text-gray-500">
+                    {message.role === 'user' ? (
+                      <>
+                        <Brain size={12} />
+                        <span>Your AI Salesperson</span>
+                      </>
+                    ) : (
+                      <>
+                        <User size={12} />
+                        <span>{currentCustomer.name}</span>
+                      </>
+                    )}
+                  </div>
                   {message.content}
                 </div>
               )}
@@ -109,6 +149,10 @@ const CustomerInteraction: React.FC = () => {
           {isAiThinking && (
             <div className="chat-message-container">
               <div className="chat-message ai" style={{ padding: '12px 16px' }}>
+                <div className="flex items-center gap-2 mb-1 text-xs text-gray-500">
+                  <User size={12} />
+                  <span>{currentCustomer.name}</span>
+                </div>
                 <div className="dot-pulse"></div>
               </div>
             </div>
@@ -125,7 +169,7 @@ const CustomerInteraction: React.FC = () => {
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Type your sales pitch..."
+              placeholder="Type what your AI salesperson should say..."
               className="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
               disabled={isAiThinking}
             />
