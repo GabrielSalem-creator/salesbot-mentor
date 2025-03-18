@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { chatWithCohere } from '../lib/cohereAI';
 
@@ -134,9 +133,9 @@ export const SalesProvider = ({ children }: { children: ReactNode }) => {
 
   // Initialize the first customer when starting a customer interaction
   useEffect(() => {
-    if (stage === 'customer-interaction' && !currentCustomer && availableCustomers.length > 0) {
-      const randomIndex = Math.floor(Math.random() * availableCustomers.length);
-      const randomCustomer = availableCustomers[randomIndex];
+    if (stage === 'customer-interaction' && !currentCustomer && customerPersonalities.length > 0) {
+      const randomIndex = Math.floor(Math.random() * customerPersonalities.length);
+      const randomCustomer = customerPersonalities[randomIndex];
       setCurrentCustomer(randomCustomer);
       
       // Initialize a new sales attempt
