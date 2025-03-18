@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useSales } from '../context/SalesContext';
 import { User, Brain, ArrowRight, Bot } from 'lucide-react';
 
@@ -8,33 +8,16 @@ const CustomerInteraction: React.FC = () => {
     customerMessages, 
     currentCustomer,
     selectedProduct,
-    sendMessage,
     isAiThinking,
     completeSalesAttempt
   } = useSales();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [conversationStarted, setConversationStarted] = useState(false);
-  const [initialMessage, setInitialMessage] = useState('');
   
   // Auto scroll when new messages arrive
   useEffect(() => {
     scrollToBottom();
   }, [customerMessages]);
-  
-  // Start the conversation automatically when component mounts
-  useEffect(() => {
-    if (currentCustomer && selectedProduct && !conversationStarted) {
-      setConversationStarted(true);
-      
-      // Generate a suitable first message based on the product
-      const firstMessage = `Hello! I noticed you were interested in our ${selectedProduct.name}. It's one of our most popular products. Can I tell you more about its features?`;
-      setInitialMessage(firstMessage);
-      
-      // Send the initial message immediately to start the conversation
-      sendMessage(firstMessage, 'customer');
-    }
-  }, [currentCustomer, selectedProduct, conversationStarted, sendMessage]);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -123,7 +106,7 @@ const CustomerInteraction: React.FC = () => {
             </button>
           </div>
         
-          {customerMessages.length === 0 && initialMessage && (
+          {customerMessages.length === 0 && (
             <div className="p-4 bg-gray-50 rounded-lg text-center text-gray-500">
               <Bot className="inline-block mr-2" size={16} />
               <span>Starting conversation with customer...</span>
@@ -137,7 +120,7 @@ const CustomerInteraction: React.FC = () => {
               style={{ animationDelay: `${index * 0.05}s` }}
             >
               {message.role === 'system' ? (
-                <div className="text-center text-sm text-gray-500 my-2">
+                <div className="text-center my-3 py-2 px-4 bg-gray-100 rounded-lg text-sm text-gray-700 mx-auto max-w-xs">
                   {message.content}
                 </div>
               ) : (
@@ -165,8 +148,17 @@ const CustomerInteraction: React.FC = () => {
             <div className="chat-message-container">
               <div className="chat-message ai" style={{ padding: '12px 16px' }}>
                 <div className="flex items-center gap-2 mb-1 text-xs text-gray-500">
-                  <User size={12} />
-                  <span>{currentCustomer.name}</span>
+                  {customerMessages.length > 0 && customerMessages[customerMessages.length - 1].role === 'user' ? (
+                    <>
+                      <User size={12} />
+                      <span>{currentCustomer.name}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Brain size={12} />
+                      <span>Your AI Salesperson</span>
+                    </>
+                  )}
                 </div>
                 <div className="dot-pulse"></div>
               </div>

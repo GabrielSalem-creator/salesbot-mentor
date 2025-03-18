@@ -98,25 +98,25 @@ const customerPersonalities: CustomerPersonality[] = [
     id: '1',
     name: 'The Skeptic',
     traits: ['Doubtful', 'Questioning', 'Analytical'],
-    description: 'This customer questions everything and needs solid evidence before making a decision.'
+    description: 'This customer questions everything and needs solid evidence before making a decision. They respond with short, direct questions and brief statements.'
   },
   {
     id: '2',
     name: 'The Bargain Hunter',
     traits: ['Price-conscious', 'Value-oriented', 'Negotiator'],
-    description: 'This customer is primarily concerned with getting the best deal possible.'
+    description: 'This customer is primarily concerned with getting the best deal possible. They respond concisely, focusing on price and value in brief statements.'
   },
   {
     id: '3',
     name: 'The Impulse Buyer',
     traits: ['Spontaneous', 'Emotional', 'Quick-decider'],
-    description: 'This customer makes decisions quickly based on emotional reactions.'
+    description: 'This customer makes decisions quickly based on emotional reactions. Their responses are short, enthusiastic, and focused on immediate impressions.'
   },
   {
     id: '4',
     name: 'The Feature Enthusiast',
     traits: ['Technical', 'Detail-oriented', 'Feature-focused'],
-    description: 'This customer cares deeply about specifications and technical features.'
+    description: 'This customer cares deeply about specifications and technical features. They respond with brief, specific questions about product details.'
   }
 ];
 
@@ -150,25 +150,86 @@ export const SalesProvider = ({ children }: { children: ReactNode }) => {
         };
         setCurrentSalesAttempt(newAttempt);
         
-        // Add initial system message to guide the conversation
-        const initialMessage: Message = {
-          id: Date.now().toString(),
-          role: 'system',
-          content: `Hello! I'm ${randomCustomer.name}. ${randomCustomer.description}`,
-          timestamp: Date.now()
-        };
-        setCustomerMessages([initialMessage]);
+        // Clear any previous messages
+        setCustomerMessages([]);
       }
     }
   }, [stage, currentCustomer, selectedProduct]);
 
   // Effect to automatically continue the conversation
   useEffect(() => {
+    // Start the conversation when we enter the customer interaction stage
+    if (stage === 'customer-interaction' && customerMessages.length === 0 && currentCustomer && selectedProduct) {
+      // Automatically add a greeting from the salesperson to start the conversation
+      const initialGreeting = `Hello! I noticed you were interested in our ${selectedProduct.name}. It's one of our most popular products. Can I tell you more about its features?`;
+      addCustomerMessage(initialGreeting, 'user');
+      
+      // We'll let the next useEffect handle the customer's response
+    }
+  }, [stage, customerMessages.length, currentCustomer, selectedProduct]);
+
+  // Effect to handle automatic conversation flow
+  useEffect(() => {
     if (stage === 'customer-interaction' && customerMessages.length > 0 && !isAiThinking) {
       const lastMessage = customerMessages[customerMessages.length - 1];
       
-      // If the last message was from the AI customer, have the AI salesperson respond
-      if (lastMessage.role === 'ai') {
+      // If the last message was from the user (AI salesperson), generate a customer response
+      if (lastMessage.role === 'user' && currentCustomer && selectedProduct) {
+        // Use a timeout to make the conversation feel more natural
+        const timer = setTimeout(() => {
+          const customerPrompt = `You are playing the role of a customer with the following traits: ${currentCustomer.traits.join(', ')}. 
+          ${currentCustomer.description}
+          
+          You are considering buying a ${selectedProduct.name} which costs $${selectedProduct.price}.
+          ${selectedProduct.description}
+          
+          Respond AS THE CUSTOMER to a salesperson. Keep your response VERY brief and concise (2-3 sentences maximum).
+          Be realistic in your responses and only agree to purchase if the salesperson makes a compelling case.
+          
+          The salesperson just said: "${lastMessage.content}"`;
+          
+          setIsAiThinking(true);
+          
+          // Call the AI to generate a customer response
+          chatWithCohere(customerPrompt)
+            .then(response => {
+              addCustomerMessage(response, 'ai');
+              
+              // Check if the customer has decided to buy or not
+              const lowercaseResponse = response.toLowerCase();
+              if (
+                (lowercaseResponse.includes("i'll take it") || 
+                 lowercaseResponse.includes("i will buy") || 
+                 lowercaseResponse.includes("sold") || 
+                 lowercaseResponse.includes("i'll buy") || 
+                 lowercaseResponse.includes("sign me up"))
+              ) {
+                // Customer is buying
+                setTimeout(() => completeSalesAttempt(true), 1500);
+              } else if (
+                (lowercaseResponse.includes("not interested") || 
+                 lowercaseResponse.includes("no thanks") || 
+                 lowercaseResponse.includes("i'm not buying") || 
+                 lowercaseResponse.includes("too expensive") ||
+                 lowercaseResponse.includes("i'll pass"))
+              ) {
+                // Customer is rejecting
+                setTimeout(() => completeSalesAttempt(false), 1500);
+              }
+            })
+            .catch(error => {
+              console.error('Error getting customer response:', error);
+              addCustomerMessage('The customer seems distracted and doesn\'t respond.', 'system');
+            })
+            .finally(() => {
+              setIsAiThinking(false);
+            });
+        }, 1500);
+        
+        return () => clearTimeout(timer);
+      } 
+      // If the last message was from the customer (AI), generate a salesperson response
+      else if (lastMessage.role === 'ai' && currentCustomer && selectedProduct) {
         // Use a timeout to make the conversation feel more natural
         const timer = setTimeout(() => {
           // Generate AI seller's response based on the conversation context
@@ -179,17 +240,29 @@ export const SalesProvider = ({ children }: { children: ReactNode }) => {
           
           The customer just said: "${lastCustomerMessage}"
           
-          Respond as a skilled salesperson focusing on benefits, addressing concerns, and subtly moving toward closing the sale. 
-          Keep your response under 3 sentences. Don't be too pushy.`;
+          Respond as a skilled salesperson focusing on benefits, addressing concerns, and subtly moving toward closing the sale.
+          Keep your response concise (2-3 sentences). Be conversational but professional.`;
           
-          // Send the AI salesperson's message
-          sendMessage(prompt, 'customer');
+          setIsAiThinking(true);
+          
+          // Call the AI to generate a salesperson response
+          chatWithCohere(prompt, `You are an AI salesperson trained with the following techniques: ${trainingMessages.map(m => m.content).join(' ')}`)
+            .then(response => {
+              addCustomerMessage(response, 'user');
+            })
+            .catch(error => {
+              console.error('Error getting salesperson response:', error);
+              addCustomerMessage('Sorry, I need a moment to think about that.', 'user');
+            })
+            .finally(() => {
+              setIsAiThinking(false);
+            });
         }, 1500);
         
         return () => clearTimeout(timer);
       }
     }
-  }, [customerMessages, isAiThinking, stage, currentCustomer, selectedProduct]);
+  }, [customerMessages, isAiThinking, stage, currentCustomer, selectedProduct, trainingMessages]);
 
   const addTrainingMessage = (content: string, role: 'user' | 'ai' | 'system') => {
     const newMessage: Message = {
@@ -238,6 +311,15 @@ export const SalesProvider = ({ children }: { children: ReactNode }) => {
         successful
       };
       
+      // Add a system message to indicate the result
+      const resultMessage: Message = {
+        id: Date.now().toString(),
+        role: 'system',
+        content: successful ? 'Sale successful! The customer has decided to purchase.' : 'Sale unsuccessful. The customer has decided not to purchase.',
+        timestamp: Date.now()
+      };
+      addCustomerMessage(resultMessage.content, resultMessage.role);
+      
       // Add to history
       setSalesAttempts(prev => [...prev, completedAttempt]);
       
@@ -246,13 +328,16 @@ export const SalesProvider = ({ children }: { children: ReactNode }) => {
         setBalance(prev => prev + selectedProduct.price * 0.1); // 10% commission
       }
       
-      // Clear current attempt
-      setCurrentSalesAttempt(null);
-      setCurrentCustomer(null);
-      clearCustomerMessages();
-      
-      // Move to results
-      setStage('results');
+      // After a delay, move to results
+      setTimeout(() => {
+        // Clear current attempt
+        setCurrentSalesAttempt(null);
+        setCurrentCustomer(null);
+        clearCustomerMessages();
+        
+        // Move to results
+        setStage('results');
+      }, 3000);
     }
   };
 
@@ -267,61 +352,8 @@ export const SalesProvider = ({ children }: { children: ReactNode }) => {
         const response = await chatWithCohere(content, 'You are a helpful AI assistant helping someone learn sales techniques.');
         addTrainingMessage(response, 'ai');
       } else if (context === 'customer') {
-        // For automated conversation flow
-        if (content.includes("Based on your sales training")) {
-          // This is a prompt for the AI salesperson - don't add it to messages
-          const trainingPrompt = `You are an AI salesperson trained with the following techniques: ${trainingMessages.map(m => m.content).join(' ')}. 
-          Now apply these techniques to sell a ${selectedProduct?.name} at $${selectedProduct?.price} to a customer who is ${currentCustomer?.traits.join(', ')}.
-          ${content}`;
-          
-          const sellerResponse = await chatWithCohere(trainingPrompt);
-          addCustomerMessage(sellerResponse, 'user');
-        } else {
-          // This is a regular message from the salesperson - add it to messages
-          addCustomerMessage(content, 'user');
-        }
-        
-        if (currentCustomer && selectedProduct) {
-          // Generate prompt based on customer personality and product
-          const customerPrompt = `You are playing the role of a customer with the following traits: ${currentCustomer.traits.join(', ')}. 
-          ${currentCustomer.description}
-          
-          You are considering buying a ${selectedProduct.name} which costs $${selectedProduct.price}.
-          ${selectedProduct.description}
-          
-          Respond as this customer would to a salesperson. Be realistic in your responses and only agree to purchase if the salesperson makes a compelling case.
-          
-          The salesperson just said: "${customerMessages[customerMessages.length - 1]?.content || content}"`;
-          
-          const response = await chatWithCohere(customerPrompt);
-          
-          // Check if the customer has decided to buy or not
-          const lowercaseResponse = response.toLowerCase();
-          if (
-            (lowercaseResponse.includes("i'll take it") || 
-             lowercaseResponse.includes("i will buy") || 
-             lowercaseResponse.includes("sold") || 
-             lowercaseResponse.includes("i'll buy") || 
-             lowercaseResponse.includes("sign me up"))
-          ) {
-            // Customer is buying
-            addCustomerMessage(response, 'ai');
-            setTimeout(() => completeSalesAttempt(true), 1500);
-          } else if (
-            (lowercaseResponse.includes("not interested") || 
-             lowercaseResponse.includes("no thanks") || 
-             lowercaseResponse.includes("i'm not buying") || 
-             lowercaseResponse.includes("too expensive") ||
-             lowercaseResponse.includes("i'll pass"))
-          ) {
-            // Customer is rejecting
-            addCustomerMessage(response, 'ai');
-            setTimeout(() => completeSalesAttempt(false), 1500);
-          } else {
-            // Conversation continues
-            addCustomerMessage(response, 'ai');
-          }
-        }
+        // This is a regular message from the salesperson - add it to messages
+        addCustomerMessage(content, 'user');
       }
     } catch (error) {
       console.error('Error sending message:', error);

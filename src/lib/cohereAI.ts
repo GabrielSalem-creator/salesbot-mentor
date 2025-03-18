@@ -19,7 +19,7 @@ export async function chatWithCohere(userMessage: string, systemPrompt?: string)
       body: JSON.stringify({
         model: COHERE_MODEL,
         message: userMessage,
-        preamble: systemPrompt
+        preamble: systemPrompt || "Keep your responses brief and concise, under 3 sentences when possible."
       })
     });
     
