@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { chatWithCohere } from '../lib/cohereAI';
 
@@ -238,8 +239,19 @@ export const SalesProvider = ({ children }: { children: ReactNode }) => {
         const response = await chatWithCohere(content, 'You are a helpful AI assistant helping someone learn sales techniques.');
         addTrainingMessage(response, 'ai');
       } else if (context === 'customer') {
-        // Add user message (salesperson)
-        addCustomerMessage(content, 'user');
+        // For automated conversation flow
+        if (content.includes("Based on your sales training")) {
+          // This is a prompt for the AI salesperson - don't add it to messages
+          const trainingPrompt = `You are an AI salesperson trained with the following techniques: ${trainingMessages.map(m => m.content).join(' ')}. 
+          Now apply these techniques to sell a ${selectedProduct?.name} at $${selectedProduct?.price} to a customer who is ${currentCustomer?.traits.join(', ')}.
+          ${content}`;
+          
+          const sellerResponse = await chatWithCohere(trainingPrompt);
+          addCustomerMessage(sellerResponse, 'user');
+        } else {
+          // This is a regular message from the salesperson - add it to messages
+          addCustomerMessage(content, 'user');
+        }
         
         if (currentCustomer && selectedProduct) {
           // Generate prompt based on customer personality and product
@@ -251,7 +263,7 @@ export const SalesProvider = ({ children }: { children: ReactNode }) => {
           
           Respond as this customer would to a salesperson. Be realistic in your responses and only agree to purchase if the salesperson makes a compelling case.
           
-          The salesperson just said: "${content}"`;
+          The salesperson just said: "${customerMessages[customerMessages.length - 1]?.content || content}"`;
           
           const response = await chatWithCohere(customerPrompt);
           
