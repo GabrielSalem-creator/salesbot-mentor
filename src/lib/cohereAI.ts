@@ -4,26 +4,9 @@ import { toast } from "sonner";
 const COHERE_API_KEY = 'LIKR6AGC89QCRUyaxIGGnzvxzofYOx6gRCOjDX97';
 const COHERE_MODEL = 'command-a-03-2025';
 
-interface CohereResponse {
-  text: string;
-}
-
 export async function chatWithCohere(userMessage: string, systemPrompt?: string): Promise<string> {
   try {
-    // Construct messages array
-    const messages = [];
-    
-    if (systemPrompt) {
-      messages.push({
-        role: 'system',
-        content: systemPrompt
-      });
-    }
-    
-    messages.push({
-      role: 'user',
-      content: userMessage
-    });
+    console.log('Sending message to Cohere:', { userMessage, systemPrompt });
     
     // Call Cohere API
     const response = await fetch('https://api.cohere.ai/v1/chat', {
@@ -45,6 +28,7 @@ export async function chatWithCohere(userMessage: string, systemPrompt?: string)
     }
     
     const data = await response.json();
+    console.log('Received response from Cohere:', data);
     
     // Extract and return the AI's response
     return data.text || "I couldn't generate a response. Please try again.";

@@ -31,57 +31,13 @@ const CustomerInteraction: React.FC = () => {
       const firstMessage = `Hello! I noticed you were interested in our ${selectedProduct.name}. It's one of our most popular products. Can I tell you more about its features?`;
       setInitialMessage(firstMessage);
       
-      // Allow a small delay to make it feel natural
-      const timer = setTimeout(() => {
-        sendMessage(firstMessage, 'customer');
-      }, 1000);
-      
-      return () => clearTimeout(timer);
+      // Send the initial message immediately to start the conversation
+      sendMessage(firstMessage, 'customer');
     }
   }, [currentCustomer, selectedProduct, conversationStarted, sendMessage]);
   
-  // Continue the conversation automatically after each response
-  useEffect(() => {
-    if (conversationStarted && customerMessages.length > 0 && !isAiThinking) {
-      const lastMessage = customerMessages[customerMessages.length - 1];
-      
-      // If the last message was from the customer (AI), have the salesperson respond
-      if (lastMessage.role === 'ai' && customerMessages.length > 1) {
-        // Allow a small delay to make it feel more natural
-        const timer = setTimeout(() => {
-          // Generate AI seller's response based on the conversation context
-          generateSellerResponse(lastMessage.content);
-        }, 1500);
-        
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [customerMessages, isAiThinking, conversationStarted]);
-  
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-  
-  const generateSellerResponse = (lastCustomerMessage: string) => {
-    // This is where we generate the AI salesperson's response
-    // based on the last customer message and sales training
-    
-    // Create a prompt that brings together:
-    // 1. Product information
-    // 2. Customer personality
-    // 3. Last customer response
-    
-    const prompt = `Based on your sales training, you are selling a ${selectedProduct.name} priced at $${selectedProduct.price}.
-    You're talking to a customer who is ${currentCustomer.traits.join(', ')}.
-    ${currentCustomer.description}
-    
-    The customer just said: "${lastCustomerMessage}"
-    
-    Respond as a skilled salesperson focusing on benefits, addressing concerns, and subtly moving toward closing the sale. 
-    Keep your response under 3 sentences. Don't be too pushy.`;
-    
-    // Send the AI salesperson's message
-    sendMessage(prompt, 'customer');
   };
   
   const handleSkipCustomer = () => {

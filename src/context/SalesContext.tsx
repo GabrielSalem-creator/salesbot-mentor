@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { chatWithCohere } from '../lib/cohereAI';
 
@@ -162,6 +161,35 @@ export const SalesProvider = ({ children }: { children: ReactNode }) => {
       }
     }
   }, [stage, currentCustomer, selectedProduct]);
+
+  // Effect to automatically continue the conversation
+  useEffect(() => {
+    if (stage === 'customer-interaction' && customerMessages.length > 0 && !isAiThinking) {
+      const lastMessage = customerMessages[customerMessages.length - 1];
+      
+      // If the last message was from the AI customer, have the AI salesperson respond
+      if (lastMessage.role === 'ai') {
+        // Use a timeout to make the conversation feel more natural
+        const timer = setTimeout(() => {
+          // Generate AI seller's response based on the conversation context
+          const lastCustomerMessage = lastMessage.content;
+          const prompt = `Based on your sales training, you are selling a ${selectedProduct?.name} priced at $${selectedProduct?.price}.
+          You're talking to a customer who is ${currentCustomer?.traits.join(', ')}.
+          ${currentCustomer?.description}
+          
+          The customer just said: "${lastCustomerMessage}"
+          
+          Respond as a skilled salesperson focusing on benefits, addressing concerns, and subtly moving toward closing the sale. 
+          Keep your response under 3 sentences. Don't be too pushy.`;
+          
+          // Send the AI salesperson's message
+          sendMessage(prompt, 'customer');
+        }, 1500);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [customerMessages, isAiThinking, stage, currentCustomer, selectedProduct]);
 
   const addTrainingMessage = (content: string, role: 'user' | 'ai' | 'system') => {
     const newMessage: Message = {
